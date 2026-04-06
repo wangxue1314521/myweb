@@ -1,0 +1,607 @@
+好的，我明白了——你要的是贪吃蛇游戏的代码文件。之前我给出了计算器，现在给你完整的贪吃蛇游戏（含AI生成的Logo），保存为一个 index.html 即可。
+
+---
+
+贪吃蛇游戏完整代码（含Logo）
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>贪吃蛇游戏 | AI作业</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Press Start 2P', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #0a1f12;
+            border-radius: 48px;
+            padding: 20px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1);
+        }
+
+        /* Logo 区域 - AI生成的蛇形徽标 */
+        .logo-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #00000055;
+            padding: 10px 25px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+        }
+        .snake-logo {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            background: #2e7d32;
+            padding: 8px 20px;
+            border-radius: 40px;
+            box-shadow: inset 0 -2px 0 #1b5e20, 0 5px 10px rgba(0,0,0,0.3);
+        }
+        .logo-dot {
+            width: 18px;
+            height: 18px;
+            background-color: #fdd835;
+            border-radius: 4px;
+            box-shadow: 0 0 4px gold;
+        }
+        .logo-dot.head {
+            background-color: #ffb74d;
+            border-radius: 8px 2px 8px 2px;
+            transform: scale(1.2);
+        }
+        .logo-text {
+            font-size: 1.7rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #ffd966;
+            text-shadow: 0 2px 0 #7b2f00;
+            margin-left: 12px;
+            font-family: monospace;
+        }
+        .sub {
+            color: #c8e6b5;
+            font-size: 0.8rem;
+            background: #1e3a2f;
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+
+        canvas {
+            background-color: #1d3b2a;
+            display: block;
+            margin: 0 auto;
+            border-radius: 24px;
+            box-shadow: 0 0 0 6px #2b5a3b, 0 12px 28px black;
+            cursor: pointer;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 18px;
+            background: #071a0ecc;
+            padding: 12px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(5px);
+            color: #f1f9e6;
+        }
+
+        .score-box {
+            background: #010d07;
+            padding: 8px 20px;
+            border-radius: 32px;
+            font-size: 1.7rem;
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 2px;
+            color: #fbc02d;
+        }
+
+        .restart-btn {
+            background: #ffb74d;
+            border: none;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 6px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 3px 0 #b45f1b;
+        }
+        .restart-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b45f1b;
+        }
+
+        .control-hint {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 15px;
+            color: #b9f6ca;
+        }
+
+        @media (max-width: 550px) {
+            .logo-text { font-size: 1.2rem; }
+            .snake-logo { padding: 4px 12px; }
+            .score-box { font-size: 1.2rem; padding: 4px 15px; }
+            .restart-btn { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="game-container">
+        <!-- AI 生成的 Logo 区域（蛇形图案+文字） -->
+        <div class="logo-area">
+            <div class="snake-logo">
+                <div class="logo-dot head"></div>
+                <div class="logo-dot"></div>
+                <div class="logo-dot"></div>
+                <div class="logo-dot"></div>
+                <div class="logo-dot"></div>
+                <span class="logo-text">? SNAKE</span>
+            </div>
+            <div class="sub">AI 生成 · 贪吃蛇经典</div>
+        </div>
+
+        <canvas id="snakeCanvas" width="400" height="400"></canvas>
+
+        <div class="info-panel">
+            <span>? 得分</span>
+            <span class="score-box" id="scoreDisplay">0</span>
+            <button class="restart-btn" id="restartButton">? 新的一局</button>
+        </div>
+        <div class="control-hint">
+            ? ? ? ?   |   空格 / 点击按钮 重新开始
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- 贪吃蛇核心 ----------
+        const canvas = document.getElementById('snakeCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreSpan = document.getElementById('scoreDisplay');
+        const restartBtn = document.getElementById('restartButton');
+
+        // 网格参数
+        const GRID_SIZE = 20;      // 20x20 网格
+        const CELL_SIZE = canvas.width / GRID_SIZE; // 20px
+
+        let snake = [];
+        let food = { x: 12, y: 12 };
+        let direction = 'RIGHT';
+        let nextDirection = 'RIGHT';
+        let score = 0;
+        let gameLoop = null;
+        let gameRunning = true;
+
+        function initGame() {
+            snake = [
+                { x: 10, y: 10 },
+                { x: 9, y: 10 },
+                { x: 8, y: 10 }
+            ];
+            direction = 'RIGHT';
+            nextDirection = 'RIGHT';
+            score = 0;
+            updateScoreDisplay();
+            gameRunning = true;
+            generateValidFood();
+            drawGame();
+            clearGameInterval();
+            startGameInterval();
+        }
+
+        function startGameInterval() {
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(gameStep, 150);
+        }
+
+        function clearGameInterval() {
+            if (gameLoop) {
+                clearInterval(gameLoop);
+                gameLoop = null;
+            }
+        }
+
+        function updateScoreDisplay() {
+            scoreSpan.innerText = score;
+        }
+
+        function generateValidFood() {
+            const totalCells = GRID_SIZE * GRID_SIZE;
+            if (snake.length >= totalCells) {
+                gameRunning = false;
+                clearGameInterval();
+                drawGame();
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = 'bold 20px "Courier New", monospace';
+                ctx.fillStyle = '#ffd966';
+                ctx.fillText('? 你赢了！', canvas.width/2-70, canvas.height/2);
+                ctx.font = '14px monospace';
+                ctx.fillStyle = '#ccc';
+                ctx.fillText('点击「新的一局」继续', canvas.width/2-95, canvas.height/2+40);
+                return;
+            }
+
+            let newFood = null;
+            let attempts = 0;
+            while (attempts < 3000) {
+                const randX = Math.floor(Math.random() * GRID_SIZE);
+                const randY = Math.floor(Math.random() * GRID_SIZE);
+                if (!snake.some(segment => segment.x === randX && segment.y === randY)) {
+                    newFood = { x: randX, y: randY };
+                    break;
+                }
+                attempts++;
+            }
+            if (!newFood) {
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        if (!snake.some(s => s.x === i && s.y === j)) {
+                            newFood = { x: i, y: j };
+                            break;
+                        }
+                    }
+                    if (newFood) break;
+                }
+            }
+            if (newFood) food = newFood;
+            else gameRunning = false;
+        }
+
+        function gameStep() {
+            if (!gameRunning) return;
+
+            direction = nextDirection;
+
+            let newHead = { ...snake[0] };
+            switch (direction) {
+                case 'RIGHT': newHead.x += 1; break;
+                case 'LEFT':  newHead.x -= 1; break;
+                case 'UP':    newHead.y -= 1; break;
+                case 'DOWN':  newHead.y += 1; break;
+            }
+
+            const willEat = (newHead.x === food.x && newHead.y === food.y);
+
+            if (willEat) {
+                snake.unshift(newHead);
+                score++;
+                updateScoreDisplay();
+                generateValidFood();
+                if (!gameRunning) {
+                    drawGame();
+                    return;
+                }
+            } else {
+                snake.unshift(newHead);
+                snake.pop();
+            }
+
+            const head = snake[0];
+            if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+                gameOver();
+                return;
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            drawGame();
+        }
+
+        function gameOver() {
+            if (!gameRunning) return;
+            gameRunning = false;
+            clearGameInterval();
+            drawGame();
+            ctx.fillStyle = 'rgba(0,0,0,0.75)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = 'bold 20px "Courier New", monospace';
+            ctx.fillStyle = '#ffb347';
+            ctx.fillText('? GAME OVER ?', canvas.width/2-100, canvas.height/2);
+            ctx.font = '14px monospace';
+            ctx.fillStyle = '#ddd';
+            ctx.fillText('点击「新的一局」继续', canvas.width/2-95, canvas.height/2+40);
+        }
+
+        function drawGame() {
+            if (!gameRunning && gameLoop === null) {
+                // 已经game over绘制过了，不再覆盖
+                return;
+            }
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    ctx.fillStyle = (i + j) % 2 === 0 ? '#2a5a3a' : '#1f4730';
+                    ctx.fillRect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            }
+            // 画食物
+            ctx.fillStyle = '#ff5252';
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#ff8a5c';
+            ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            ctx.shadowBlur = 0;
+            // 画蛇
+            for (let i = 0; i < snake.length; i++) {
+                const seg = snake[i];
+                const grad = ctx.createLinearGradient(seg.x * CELL_SIZE, seg.y * CELL_SIZE, (seg.x+1)*CELL_SIZE, (seg.y+1)*CELL_SIZE);
+                if (i === 0) {
+                    grad.addColorStop(0, '#7cb342');
+                    grad.addColorStop(1, '#558b2f');
+                } else {
+                    grad.addColorStop(0, '#5d9b4b');
+                    grad.addColorStop(1, '#3e7a2a');
+                }
+                ctx.fillStyle = grad;
+                ctx.fillRect(seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE-1, CELL_SIZE-1);
+                if (i === 0) {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(seg.x * CELL_SIZE + 4, seg.y * CELL_SIZE + 5, 4, 4);
+                    ctx.fillRect(seg.x * CELL_SIZE + 12, seg.y * CELL_SIZE + 5, 4, 4);
+                }
+            }
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if (!gameRunning) return;
+            if (key === 'ArrowUp' && direction !== 'DOWN') nextDirection = 'UP';
+            else if (key === 'ArrowDown' && direction !== 'UP') nextDirection = 'DOWN';
+            else if (key === 'ArrowLeft' && direction !== 'RIGHT') nextDirection = 'LEFT';
+            else if (key === 'ArrowRight' && direction !== 'LEFT') nextDirection = 'RIGHT';
+            else if (key === ' ' || key === 'Space') {
+                e.preventDefault();
+                restartGame();
+            }
+        });
+
+        function restartGame() {
+            clearGameInterval();
+            initGame();
+        }
+
+        restartBtn.addEventListener('click', restartGame);
+
+        // 触摸屏滑动支持（简单）
+        let touchStart = null;
+        canvas.addEventListener('touchstart', (e) => {
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            e.preventDefault();
+        });
+        canvas.addEventListener('touchend', (e) => {
+            if (!touchStart || !gameRunning) return;
+            const dx = e.changedTouches[0].clientX - touchStart.x;
+            const dy = e.changedTouches[0].clientY - touchStart.y;
+            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0 && direction !== 'LEFT') nextDirection = 'RIGHT';
+                else if (dx < 0 && direction !== 'RIGHT') nextDirection = 'LEFT';
+            } else {
+                if (dy > 0 && direction !== 'UP') nextDirection = 'DOWN';
+                else if (dy < 0 && direction !== 'DOWN') nextDirection = 'UP';
+            }
+            touchStart = null;
+        });
+
+        initGame();
+    })();
+</script>
+</body>
+</html>
+```
+
+---
+
+如何使用
+
+1. 复制上面的代码，粘贴到一个文本编辑器中（如记事本、VS Code）。
+2. 保存文件，文件名必须为 index.html（注意不是 .txt）。
+3. 双击 index.html 即可在浏览器中运行贪吃蛇游戏。
+
+---
+
+部署到 GitHub Pages（老师要的公网链接）
+
+如果你还没注册 GitHub，请按照之前我写的详细步骤注册并创建仓库，然后：
+
+1. 在仓库页面点击 Add file → Upload files，上传这个 index.html。
+2. 进入 Settings → Pages，Branch 选 main，保存。
+3. 等待1-2分钟，访问 https://你的用户名.github.io/仓库名/ 即可。
+
+如果遇到问题，把错误提示告诉我，我会帮你解决。```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>贪吃蛇游戏 | AI作业</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Press Start 2P', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #0a1f12;
+            border-radius: 48px;
+            padding: 20px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1);
+        }
+
+        /* Logo 区域 - AI生成的蛇形徽标 */
+        .logo-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #00000055;
+            padding: 10px 25px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+        }
+        .snake-logo {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            background: #2e7d32;
+            padding: 8px 20px;
+            border-radius: 40px;
+            box-shadow: inset 0 -2px 0 #1b5e20, 0 5px 10px rgba(0,0,0,0.3);
+        }
+        .logo-dot {
+            width: 18px;
+            height: 18px;
+            background-color: #fdd835;
+            border-radius: 4px;
+            box-shadow: 0 0 4px gold;
+        }
+        .logo-dot.head {
+            background-color: #ffb74d;
+            border-radius: 8px 2px 8px 2px;
+            transform: scale(1.2);
+        }
+        .logo-text {
+            font-size: 1.7rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #ffd966;
+            text-shadow: 0 2px 0 #7b2f00;
+            margin-left: 12px;
+            font-family: monospace;
+        }
+        .sub {
+            color: #c8e6b5;
+            font-size: 0.8rem;
+            background: #1e3a2f;
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+
+        canvas {
+            background-color: #1d3b2a;
+            display: block;
+            margin: 0 auto;
+            border-radius: 24px;
+            box-shadow: 0 0 0 6px #2b5a3b, 0 12px 28px black;
+            cursor: pointer;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 18px;
+            background: #071a0ecc;
+            padding: 12px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(5px);
+            color: #f1f9e6;
+        }
+
+        .score-box {
+            background: #010d07;
+            padding: 8px 20px;
+            border-radius: 32px;
+            font-size: 1.7rem;
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 2px;
+            color: #fbc02d;
+        }
+
+        .restart-btn {
+            background: #ffb74d;
+            border: none;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 6px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 3px 0 #b45f1b;
+        }
+        .restart-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b45f1b;
+        }
+
+        .control-hint {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 15px;
+            color: #b9f6ca;
+        }
+
+        @media (max-width: 550px) {
+            .logo-text { font-size: 1.2rem; }
+            .snake-logo { padding: 4px 12px; }
+            .score-box { font-size: 1.2rem; padding: 4px 15px; }
+            .restart-btn { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="game-container">
+        <!-- AI 生成的 Logo 区域（蛇形图案+文字） -->
+        <div class="logo-area">
+            <div class="snake-logo">
+                <div class="logo-dot head"></div>
+                <div class="logo-dot"></div>
+                <div class="logo-dot"></div>
+                <div class="logo-dot"></div>
+                <div class="logo-dot"></div>
+                <span class="logo-text">? SNAKE</span>
+            </div>
+            <div class="sub">AI 生成 · 贪吃蛇经典</div>
+        </div>
+
+        <canvas id="snakeCanvas" width="400" height="400"></canvas>
+
+        <div class="info-panel">
+            <span>? 得分</span>
+            <span class="score-box" id="scoreDisplay">0</span>
+            <button class="restart-btn" id="restartBut
